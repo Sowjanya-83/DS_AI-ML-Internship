@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>RoboController 2.0 Dashboard</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .robot-box {
+            height: 120px;
+            background: #212529;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            font-size: 22px;
+        }
+        .log-box {
+            height: 250px;
+            overflow-y: auto;
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container mt-5">
+
+    <div class="text-center mb-4">
+        <h1 class="fw-bold">🤖 RoboController 2.0</h1>
+        <p class="text-muted">Interactive Robot Control Dashboard</p>
+    </div>
+
+    <!-- Controls -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <input type="text" id="robotName" class="form-control" placeholder="Enter Robot Name">
+        </div>
+        <div class="col-md-4">
+            <input type="number" id="targetDistance" class="form-control" placeholder="Enter Distance (meters)">
+        </div>
+        <div class="col-md-4">
+            <button class="btn btn-primary w-100" onclick="startRobot()">Start Mission</button>
+        </div>
+    </div>
+
+    <!-- Robot Status -->
+    <div class="robot-box mb-3">
+        <span id="robotStatus">Waiting for mission...</span>
+    </div>
+
+    <!-- Progress Bar -->
+    <div class="progress mb-4" style="height: 30px;">
+        <div id="progressBar"
+             class="progress-bar progress-bar-striped progress-bar-animated"
+             style="width: 0%">0%</div>
+    </div>
+
+    <!-- Logs -->
+    <div class="log-box" id="logBox"></div>
+
+</div>
+
+<!-- Obstacle Modal -->
+<div class="modal fade" id="obstacleModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-warning">
+        <h5 class="modal-title">Obstacle Detected</h5>
+      </div>
+      <div class="modal-body">
+        <label>Select obstacle type:</label>
+        <select id="obstacleType" class="form-select">
+          <option value="none">None</option>
+          <option value="wall">Wall</option>
+          <option value="pit">Pit</option>
+          <option value="human">Human</option>
+          <option value="object">Object</option>
+        </select>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="handleObstacle()">Submit</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+let currentPosition = 0;
+let targetDistance = 0;
+let robotInterval = null;
+let obstacleModal = new bootstrap.Modal(document.getElementById('obstacleModal'));
+
+function logMessage(message) {
+    const logBox = document.getElementById("logBox");
+    logBox.innerHTML += message + "<br>";
+    logBox.scrollTop = logBox.scrollHeight;
+}
+
+function updateProgress() {
+    let percent = Math.min((currentPosition / targetDistance) * 100, 100);
+    const bar = document.getElementById("progressBar");
+    bar.style.width = percent + "%";
+    bar.innerText = Math.floor(percent) + "%";
+}
+
+function startRobot() {
+    const name = document.getElementById("robotName").value;
+    targetDistance = parseInt(document.getElementById("targetDistance").value);
+
+    if (!name || !targetDistance) {
+        alert("Please enter robot name and distance.");
+        return;
+    }
+
+    currentPosition = 0;
+    document.getElementById("robotStatus").innerText = name + " is moving...";
+    document.getElementById("logBox").innerHTML = "";
+
+    logMessage("🚀 Mission started for " + name);
+
+    robotInterval = setInterval(moveRobot, 1500);
+}
+
+function moveRobot() {
+    fetch("/move")
+        .then(response => response.json())
+        .then(data => {
+
+            currentPosition += data.move;
+
+            if (currentPosition >= targetDistance) {
+                currentPosition = targetDistance;
+                updateProgress();
+                logMessage("✅ Destination reached!");
+                document.getElementById("robotStatus").innerText = "Mission Complete";
+                clearInterval(robotInterval);
+                return;
+            }
+
+            updateProgress();
+            logMessage("Moved " + data.move + " meters. Current: " + currentPosition + "m");
+
+            clearInterval(robotInterval);   // pause movement
+            obstacleModal.show();          // show modal
+        });
+}
+
+function handleObstacle() {
+
+    const type = document.getElementById("obstacleType").value;
+    let action = "";
+
+    switch(type) {
+        case "wall":
+            action = "🧱 Wall detected → Turning Right";
+            break;
+        case "pit":
+            action = "🕳 Pit detected → Avoiding";
+            break;
+        case "human":
+            action = "🧍 Human detected → Waiting...";
+            break;
+        case "object":
+            action = "📦 Object detected → Slowing down";
+            break;
+        case "none":
+            action = "No obstacle ahead.";
+            break;
+    }
+
+    logMessage("<span class='text-danger'>" + action + "</span>");
+
+    obstacleModal.hide();
+    robotInterval = setInterval(moveRobot, 1500);  // resume
+}
+</script>
+
+</body>
+</html>
