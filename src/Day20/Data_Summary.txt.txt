@@ -1,0 +1,12 @@
+Dataset Name: Customer Analytics Dataset
+
+Number of Rows: 255
+Number of Columns: 14
+
+Data Types
+Numerical Columns:CustomerID, Age, AnnualIncome, SpendingScore, YearsEmployed, PurchaseFrequency, OnlineVisitsPerMonth, ReturnedItems, LastPurchaseAmount
+Categorical Columns:Gender, City, Education, MaritalStatus, PreferredDevice
+
+Summary
+Each row in the dataset represents a single customer.
+The dataset contains both demographic details (such as age, gender, education, and marital status) and behavioral information (such as spending score, purchase frequency, and last purchase amount).
